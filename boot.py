@@ -13,14 +13,18 @@ if pycom.lte_modem_en_on_boot():
 
 # Join LoRa network
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
-print(ubinascii.hexlify(lora.mac()).upper().decode('utf-8'))
+lora.set_battery_level(255) # We are on battery but have no way to measure this.
 
-# join a network using OTAA
-lora.join(activation=LoRa.OTAA, auth=(keys.dev_eui, keys.app_eui, keys.app_key), timeout=0)
+# Try to read state from nvram otherwise join a network using OTAA
+lora.nvram_restore()
+if not lora.has_joined():
+    lora.join(activation=LoRa.OTAA, auth=(ubinascii.unhexlify(keys.dev_eui), ubinascii.unhexlify(keys.app_eui), ubinascii.unhexlify(keys.app_key)), timeout=0)
 
-# wait until network joined
-while not lora.has_joined():
-    time.sleep(2.5)
-    print("Waiting to join...")
+    # wait until network joined
+    while not lora.has_joined():
+        time.sleep(2.5)
+        print("Waiting to join...")
+
+    lora.nvram_save()
 
 print("Joined LoRaWAN")
